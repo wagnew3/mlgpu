@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
+	<classpathentry kind="lib" path="Libraries/commons-math3-3.3/commons-math3-3.3.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/mlGPU/Libraries/commons-math3-3.3/commons-math3-3.3-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/nethome/wagnew3/gtCompPrograms/jcuda/jcuda-main/target/jcublas-0.7.5b.jar">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/nethome/wagnew3/gtCompPrograms/jcuda/jcuda-main/target"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/nethome/wagnew3/gtCompPrograms/jcuda/jcuda-main/target/jcuda-0.7.5b.jar">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/nethome/wagnew3/gtCompPrograms/jcuda/jcuda-main/target"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/nethome/wagnew3/gtCompPrograms/jcuda/jcuda-main/target/jcusparse-0.7.5b.jar">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="/nethome/wagnew3/gtCompPrograms/jcuda/jcuda-main/target"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
