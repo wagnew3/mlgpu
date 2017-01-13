@@ -12,7 +12,7 @@ Many of the basics of reinforcement machine learning I learned from https://webd
 
 ##Easy Things to Run
 * Reinforcement Learning+Neural Network State Valuation Checkers
-![alt tag](http://url/to/img.png)
+![alt tag](https://github.com/wagnew3/mlgpu/blob/master/data/Checkers.jpg)
 
 ##Reinforcement Learning
 * Dynamic Programming Policy Iteration
