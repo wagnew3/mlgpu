@@ -1,4 +1,4 @@
-##**Algorithms in this library are untested; many are incomplete or likely bugged**
+##--Algorithms in this library are untested; many are incomplete or likely bugged--
 This library was implement largely for learning purposes; I do not have the time to implement the optimizations and features necessary to compete with the likes of TensorFlow or Theano.
 However, implementing everything from scratch, including GPU acceleration, was a fun programming challenge that gave me a much deeper intuition for both machine learning algorithms and the structure of popular machine learning libraries.
 
