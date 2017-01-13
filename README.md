@@ -12,6 +12,7 @@ Many of the basics of reinforcement machine learning I learned from https://webd
 
 ##Easy Things to Run
 * Monte Carlo Value Iteration Reinforcement Learning+Neural Network State Valuation Checkers: src/checkers/testCheckers.java
+
 <img src="https://github.com/wagnew3/mlgpu/blob/master/data/Checkers.jpg" width="400">
 * MNIST: src/test/MNISTNumbers.java
 
