@@ -4,6 +4,8 @@
 This library was implement largely for learning purposes; I do not have the time to implement the optimizations and features necessary to compete with the likes of TensorFlow or Theano.
 However, implementing everything from scratch, including GPU acceleration, was a fun programming challenge that gave me a much deeper intuition for both machine learning algorithms and the structure of popular machine learning libraries. I talk about what I learned in the last section.
 
+Many of the basics of reinforcement machine learning I learned from https://webdocs.cs.ualberta.ca/~sutton/book/ebook/the-book.html, and supervised machine learning http://neuralnetworksanddeeplearning.com/
+
 ##Reinforcement Learning
 * Dynamic Programming Policy Iteration
 * Dynamic Programming Value Iteration
