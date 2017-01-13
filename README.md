@@ -12,7 +12,7 @@ Many of the basics of reinforcement machine learning I learned from https://webd
 
 ##Easy Things to Run
 * Reinforcement Learning+Neural Network State Valuation Checkers: src/checkers/testCheckers.java
-![alt tag](https://github.com/wagnew3/mlgpu/blob/master/data/Checkers.jpg =250x)
+<img src="https://github.com/wagnew3/mlgpu/blob/master/data/Checkers.jpg" width="48">
 
 ##Reinforcement Learning
 * Dynamic Programming Policy Iteration
