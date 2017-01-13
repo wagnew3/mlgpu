@@ -18,9 +18,8 @@
 )
 {
 	.reg .pred 	%p<3>;
-	.reg .f32 	%f<6>;
+	.reg .f32 	%f<9>;
 	.reg .b32 	%r<11>;
-	.reg .f64 	%fd<8>;
 	.reg .b64 	%rd<5>;
 
 
@@ -43,16 +42,12 @@ BB0_2:
 	ld.global.f32 	%f1, [%rd4];
 	mul.f32 	%f2, %f1, 0fBFB8AA3B;
 	ex2.approx.f32 	%f3, %f2;
-	cvt.f64.f32	%fd1, %f3;
-	add.f64 	%fd2, %fd1, 0d3FF0000000000000;
-	rcp.rn.f64 	%fd3, %fd2;
-	cvt.rn.f32.f64	%f4, %fd3;
-	cvt.f64.f32	%fd4, %f4;
-	mov.f64 	%fd5, 0d3FF0000000000000;
-	sub.f64 	%fd6, %fd5, %fd4;
-	mul.f64 	%fd7, %fd4, %fd6;
-	cvt.rn.f32.f64	%f5, %fd7;
-	st.global.f32 	[%rd4], %f5;
+	add.f32 	%f4, %f3, 0f3F800000;
+	rcp.rn.f32 	%f5, %f4;
+	mov.f32 	%f6, 0f3F800000;
+	sub.f32 	%f7, %f6, %f5;
+	mul.f32 	%f8, %f5, %f7;
+	st.global.f32 	[%rd4], %f8;
 	add.s32 	%r10, %r3, %r10;
 	setp.lt.u32	%p2, %r10, %r6;
 	@%p2 bra 	BB0_2;

@@ -1,5 +1,6 @@
 package learningRule;
 
+import validation.Validator;
 import costFunctions.CostFunction;
 import nDimensionalMatrices.Matrix;
 import network.Network;
@@ -14,6 +15,6 @@ public abstract class MPLearningRule
 	}
 	
 	public abstract void trainNetwork(SplitNetwork network, Matrix[][] inputs, 
-			Matrix[][] desiredOutputs, CostFunction costFunction);
+			Matrix[][] desiredOutputs, CostFunction costFunction, Validator validator);
 
 }

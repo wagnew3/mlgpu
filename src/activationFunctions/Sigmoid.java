@@ -40,12 +40,15 @@ public class Sigmoid extends ActivationFunction
     private static CUfunction activationDerivative;
     private static CUdeviceptr deviceBuffer;
     
+    static final long serialVersionUID=3044104872289023515L;
+    		
     static
     {
     	JCudaDriver.setExceptionsEnabled(true);
-        //init();
+        init();
     }
 
+    /*
 	@Override
 	public float applyActivationFunction(float input) 
 	{
@@ -57,89 +60,97 @@ public class Sigmoid extends ActivationFunction
 	{
 		return (float) (applyActivationFunction(input)*(1.0-applyActivationFunction(input)));
 	}
+	*/
 	
-	/*
+	
 	@Override
 	public Matrix applyActivationFunction(Matrix input)
 	{
-		input=new FDMatrix(new float[1][10]);
-		((FDMatrix)input).sendToGPU();
-		
-		int maxThreads=1;
-    	int maxBlocks=1;
-    	int numBlocks = getNumBlocks(input.getLen(), maxBlocks, maxThreads);
-        int numThreads = getNumThreads(input.getLen(), maxBlocks, maxThreads);
-        
-        int sharedMemSize = numThreads * Sizeof.FLOAT;
-        if (numThreads <= 32) 
-        {
-            sharedMemSize *= 2;
-        }
-        
-        Pointer kernelParameters = Pointer.to(
-            Pointer.to(((FDMatrix)input).gpuPointer),
-            Pointer.to(new int[]{input.getLen()})
-        );
-
-        try
-        {
-        // Call the kernel function.
-        cuLaunchKernel(activation,
-            numBlocks,  1, 1,         // Grid dimension
-            numThreads, 1, 1,         // Block dimension
-            sharedMemSize, null,   // Shared memory size and stream
-            kernelParameters, null // Kernel- and extra parameters
-        );
-        }
-        catch(Exception e)
-        {
-        	//e.printStackTrace();
-        	System.out.println("Sigmoid cuda error");
-        }
-        //cuCtxSynchronize();
-            
-        return input;
+		if(FDMatrix.GPU)
+		{
+			//input=new FDMatrix(new float[1][10]);
+			((FDMatrix)input).sendToGPU();
+			
+			int maxThreads=1;
+	    	int maxBlocks=1;
+	    	int numBlocks = getNumBlocks(input.getLen(), maxBlocks, maxThreads);
+	        int numThreads = getNumThreads(input.getLen(), maxBlocks, maxThreads);
+	        
+	        int sharedMemSize = numThreads * Sizeof.FLOAT;
+	        if (numThreads <= 32) 
+	        {
+	            sharedMemSize *= 2;
+	        }
+	        
+	        Pointer kernelParameters = Pointer.to(
+	            Pointer.to(((FDMatrix)input).gpuPointer),
+	            Pointer.to(new int[]{input.getLen()})
+	        );
+	
+	        // Call the kernel function.
+	        cuLaunchKernel(activation,
+	            numBlocks,  1, 1,         // Grid dimension
+	            numThreads, 1, 1,         // Block dimension
+	            sharedMemSize, null,   // Shared memory size and stream
+	            kernelParameters, null // Kernel- and extra parameters
+	        );
+	        //cuCtxSynchronize();
+	            
+	        return input;
+		}
+		else
+		{
+			for(int inputInd=0; inputInd<input.getRows(); inputInd++)
+			{
+				input.set(inputInd, 0, (float) (1/(1+Math.exp(-input.get(inputInd, 0)))));
+			}
+			return input;
+		}
 	}
 	
 	@Override
 	public Matrix getDerivatives(Matrix input)
 	{
-		((FDMatrix)input).sendToGPU();
-		
-		int maxThreads=128;
-    	int maxBlocks=64;
-    	int numBlocks = getNumBlocks(input.getLen(), maxBlocks, maxThreads);
-        int numThreads = getNumThreads(input.getLen(), maxBlocks, maxThreads);
-        
-        int sharedMemSize = numThreads * Sizeof.FLOAT;
-        if (numThreads <= 32) 
-        {
-            sharedMemSize *= 2;
-        }
-        
-        Pointer kernelParameters = Pointer.to(
-            Pointer.to(((FDMatrix)input).gpuPointer),
-            Pointer.to(new int[]{input.getLen()})
-        );
-
-        try
-        {
-        // Call the kernel function.
-        cuLaunchKernel(activationDerivative,
-            numBlocks,  1, 1,         // Grid dimension
-            numThreads, 1, 1,         // Block dimension
-            sharedMemSize, null,   // Shared memory size and stream
-            kernelParameters, null // Kernel- and extra parameters
-        );
+		if(FDMatrix.GPU)
+		{
+			((FDMatrix)input).sendToGPU();
+			
+			int maxThreads=128;
+	    	int maxBlocks=64;
+	    	int numBlocks = getNumBlocks(input.getLen(), maxBlocks, maxThreads);
+	        int numThreads = getNumThreads(input.getLen(), maxBlocks, maxThreads);
+	        
+	        int sharedMemSize = numThreads * Sizeof.FLOAT;
+	        if (numThreads <= 32) 
+	        {
+	            sharedMemSize *= 2;
+	        }
+	        
+	        Pointer kernelParameters = Pointer.to(
+	            Pointer.to(((FDMatrix)input).gpuPointer),
+	            Pointer.to(new int[]{input.getLen()})
+	        );
+	
+	        // Call the kernel function.
+	        cuLaunchKernel(activationDerivative,
+	            numBlocks,  1, 1,         // Grid dimension
+	            numThreads, 1, 1,         // Block dimension
+	            sharedMemSize, null,   // Shared memory size and stream
+	            kernelParameters, null // Kernel- and extra parameters
+	        );
+	        //cuCtxSynchronize();
+	            
+	        return input;
 		}
-	    catch(Exception e)
-	    {
-	    	//e.printStackTrace();
-	    	System.out.println("Sigmoid deriv cuda error");
-	    }
-        cuCtxSynchronize();
-            
-        return input;
+		else
+		{
+			for(int inputInd=0; inputInd<input.getRows(); inputInd++)
+			{
+				input.set(inputInd, 0, (float) ((1/(1+Math.exp(-input.get(inputInd, 0))))
+						*(1.0f-(1/(1+Math.exp(-input.get(inputInd, 0)))))));
+			}
+			return input;
+		}
 	}
     
     private static void init()
@@ -311,6 +322,5 @@ public class Sigmoid extends ActivationFunction
         }
         return baos.toByteArray();
     }
-*/
 	
 }

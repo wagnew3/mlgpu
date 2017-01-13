@@ -12,7 +12,7 @@ import nDimensionalMatrices.Matrix;
 public abstract class BLayer implements Serializable 
 {
 	
-	ActivationFunction activationFunction;
+	public ActivationFunction activationFunction;
 	Matrix[] weights;
 	public Matrix biases;
 	public List<BLayer> outputLayers;

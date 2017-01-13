@@ -2,6 +2,7 @@
 /SP/
 /activationFunctions/
 /boardGame/
+/cNetworks/
 /cardGame4540/
 /checkers/
 /costFunctions/
@@ -21,3 +22,4 @@
 /tempDiffLambdaRMLTesuaro/
 /test/
 /utils/
+/validation/

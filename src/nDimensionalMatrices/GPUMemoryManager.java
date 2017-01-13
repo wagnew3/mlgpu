@@ -17,10 +17,13 @@ public class GPUMemoryManager
 	
 	public static void init(long amount)
 	{
-		int res=cudaMalloc(blockPointer, amount);
-		if(res==cudaErrorMemoryAllocation)
+		if(FDMatrix.GPU)
 		{
-			System.out.println("Error: Out of GPU memory!");
+			int res=cudaMalloc(blockPointer, amount);
+			if(res==cudaErrorMemoryAllocation)
+			{
+				System.out.println("Error: Out of GPU memory!");
+			}
 		}
 	}
 	

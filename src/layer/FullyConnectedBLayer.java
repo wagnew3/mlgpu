@@ -3,8 +3,11 @@ package layer;
 import java.util.HashMap;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
+import org.apache.commons.math3.random.JDKRandomGenerator;
 
 import activationFunctions.ActivationFunction;
+import activationFunctions.RectifiedLinearActivationFunction;
+import activationFunctions.ScaleSoftMax;
 import nDimensionalMatrices.FDMatrix;
 import nDimensionalMatrices.Matrix;
 
@@ -24,6 +27,9 @@ public class FullyConnectedBLayer extends BLayer
 		this.size=size;
 		weights=new Matrix[inputLayers.length];
 		
+		JDKRandomGenerator rng=new JDKRandomGenerator();
+		//rng.setSeed(521);
+		
 		double totalOutputSize=0.0;
 		for(int intputLayerInd=0; intputLayerInd<inputLayers.length; intputLayerInd++)
 		{
@@ -33,23 +39,45 @@ public class FullyConnectedBLayer extends BLayer
 		for(int intputLayerInd=0; intputLayerInd<inputLayers.length; intputLayerInd++)
 		{
 			weights[intputLayerInd]=new FDMatrix(new float[size][inputLayers[intputLayerInd].getOutputSize()]);
-			NormalDistribution nInvGaussian=new NormalDistribution(0.0, 1.0/Math.sqrt(totalOutputSize));
+			NormalDistribution nInvGaussian=new NormalDistribution(rng, 0.0, 1.0/Math.sqrt(totalOutputSize));
 			for(int rowIndex=0; rowIndex<weights[intputLayerInd].getRows(); rowIndex++)
 			{
 				for(int colIndex=0; colIndex<weights[intputLayerInd].getCols(); colIndex++)
 				{
-					weights[intputLayerInd].set(rowIndex, colIndex, (float)nInvGaussian.sample());
-					//weights[intputLayerInd].set(rowIndex, colIndex, 0.01f);
+					if(activationFunction instanceof RectifiedLinearActivationFunction)
+					{
+						weights[intputLayerInd].set(rowIndex, colIndex, (float)nInvGaussian.sample()/10);
+					}
+					else if(activationFunction instanceof ScaleSoftMax)
+					{
+						weights[intputLayerInd].set(rowIndex, colIndex, (float)Math.abs(nInvGaussian.sample()));
+					}
+					else
+					{
+						weights[intputLayerInd].set(rowIndex, colIndex, (float)nInvGaussian.sample());
+					}
+					//weights[intputLayerInd].set(rowIndex, colIndex, 0.2f);
 				}
 			}
 		}
 		
 		biases=new FDMatrix(new float[size][1]);
-		NormalDistribution zeroGuassian=new NormalDistribution(0.0, 1.0);
+		NormalDistribution zeroGuassian=new NormalDistribution(rng, 0.0, 1.0);
 		for(int rowIndex=0; rowIndex<biases.getRows(); rowIndex++)
 		{
-			biases.set(rowIndex, 0, (float)zeroGuassian.sample());
-			//biases.set(rowIndex, 0, 0.0f);
+			if(activationFunction instanceof RectifiedLinearActivationFunction)
+			{
+				biases.set(rowIndex, 0, (float)(zeroGuassian.sample()));
+			}
+			else if(activationFunction instanceof ScaleSoftMax)
+			{
+				biases.set(rowIndex, 0, (float)Math.abs(zeroGuassian.sample()));
+			}
+			else
+			{
+				biases.set(rowIndex, 0, (float)zeroGuassian.sample());
+			}
+			//biases.set(rowIndex, 0, 0.1f*Math.s);
 		}
 		
 		int u=0;
@@ -60,11 +88,34 @@ public class FullyConnectedBLayer extends BLayer
 	public Matrix getOutput(Matrix[] inputs, BLayer[] inputLayer, Matrix result) 
 	{
 		Matrix activation=result;
-		activation.omatVecMultScaleAdd(weights[0], inputs[0], 1.0f, biases, activation, 0.0f);
+		for(int entryInd=0; entryInd<activation.getLen(); entryInd++)
+		{
+			if(!Float.isFinite(activation.get(entryInd, 0)))
+			{
+				int u=0;
+			}
+		}
+		activation.omatVecMultScaleAdd(weights[0], inputs[0], 1.0f, activation, activation, 0.0f);
+		for(int entryInd=0; entryInd<activation.getLen(); entryInd++)
+		{
+			if(!Float.isFinite(activation.get(entryInd, 0)))
+			{
+				int u=0;
+			}
+		}
 		for(int inputInd=1; inputInd<inputs.length; inputInd++)
 		{
-			activation=activation.omatVecMultScaleAdd(weights[inputInd], inputs[inputInd], 1.0f, biases, activation, 1.0f);
+			activation=activation.omatVecMultScaleAdd(weights[inputInd], inputs[inputInd], 1.0f, activation, activation, 1.0f);
+			for(int entryInd=0; entryInd<activation.getLen(); entryInd++)
+			{
+				if(!Float.isFinite(activation.get(entryInd, 0)))
+				{
+					int u=0;
+				}
+			}
 		}
+		
+		activation.omad(biases);
 		
 		return activationFunction.applyActivationFunction(activation);
 	}

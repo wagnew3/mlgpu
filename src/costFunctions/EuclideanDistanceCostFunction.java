@@ -33,6 +33,7 @@ public class EuclideanDistanceCostFunction extends CostFunction
 				difference=networkOutput[outputInd].msub(desiredOutput[outputInd], networkOutput[outputInd]);
 			}
 			total+=(float)(0.5*difference.dot(difference));
+			difference.clear();
 		}
 		return total;
 	}
@@ -97,6 +98,14 @@ public class EuclideanDistanceCostFunction extends CostFunction
 		for(int outputInd=0; outputInd<networkOutput.length; outputInd++)
 		{
 			results[outputInd]=networkOutput[outputInd].msub(desiredOutput[outputInd], results[outputInd]);
+			for(int subOutputInd=0; subOutputInd<results[outputInd].getLen(); subOutputInd++)
+			{
+				if(Float.isInfinite(results[outputInd].get(subOutputInd, 0)) || Float.isNaN(results[outputInd].get(subOutputInd, 0))
+						|| results[outputInd].get(subOutputInd, 0)>100000)
+				{
+					int u=0;
+				}
+			}
 		}
 		return results;
 	}

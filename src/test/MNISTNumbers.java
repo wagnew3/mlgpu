@@ -28,6 +28,7 @@ import learningRule.BPGDUnsupervisedTraining;
 import learningRule.BackPropGradientDescent;
 import learningRule.BackPropGradientDescentMultiThreaded;
 import learningRule.MPBackPropGradientDescent;
+import learningRule.RProp;
 import nDimensionalMatrices.FDMatrix;
 import nDimensionalMatrices.Matrix;
 import network.Network;
@@ -54,7 +55,8 @@ public class MNISTNumbers
 		//evalNNBasicBPMT();
 		//evalConvNNBasicBP();
 		//validateConvNNBasicBP();
-		evalNNSplitBasic();
+		//evalNNSplitBasic();
+		evalNNSplitBasicRProp();
 		//evalNNSplitBasicPretrain();
 		//evalNNSplitSplitInput();
 		//evalNNSplitSplitMiddle();
@@ -110,7 +112,7 @@ public class MNISTNumbers
 		*/
 		
 		BInputLayer inputLayer=new BInputLayer(null, null, 28*28);
-		FullyConnectedBLayer hiddenLayer1=new FullyConnectedBLayer(new Sigmoid(), new BLayer[]{inputLayer}, 2000);
+		FullyConnectedBLayer hiddenLayer1=new FullyConnectedBLayer(new Sigmoid(), new BLayer[]{inputLayer}, 25);
 		FullyConnectedBLayer outputLayer=new FullyConnectedBLayer(new Sigmoid(), new BLayer[]{hiddenLayer1}, 10);
 		SplitNetwork network=new SplitFeedForwardNetwork(new BLayer[][]{new BLayer[]{inputLayer}, new BLayer[]{hiddenLayer1}, new BLayer[]{outputLayer}});
 		
@@ -118,8 +120,32 @@ public class MNISTNumbers
 		
 		MPBackPropGradientDescent bpgd=new MPBackPropGradientDescent(1, 50, lambda);
 		//bpgd.setRegularization(new L2Regularization(outputLayer.getOutputSize(), lambda, 0.1));
-		new MPBackPropGradientDescent(2, 50, lambda).trainNetwork(network, doublessToArrayss(trainImages),
-				doublessToArrays(trainLabels), new EuclideanDistanceCostFunction());
+		new MPBackPropGradientDescent(100, 50, lambda).trainNetwork(network, doublessToArrayss(trainImages),
+				doublessToArrayss(trainLabels), new EuclideanDistanceCostFunction());
+	}
+	
+	public static void evalNNSplitBasicRProp() throws IOException
+	{
+		Object[] training=getImagesAndLabels("train");
+		double[][] trainImages=(double[][])training[0];
+		double[][] trainLabels=(double[][])training[1];
+		
+		scaleFilter=new ScaleFilter();
+				
+		Object[] eval=getImagesAndLabels("t10k");
+		evalImages=doublessToArrays((double[][])eval[0]);
+		evalLabels=(double[][])eval[1];
+
+		BInputLayer inputLayer=new BInputLayer(null, null, 28*28);
+		FullyConnectedBLayer hiddenLayer1=new FullyConnectedBLayer(new Sigmoid(), new BLayer[]{inputLayer}, 25);
+		FullyConnectedBLayer outputLayer=new FullyConnectedBLayer(new Sigmoid(), new BLayer[]{hiddenLayer1}, 10);
+		SplitNetwork network=new SplitFeedForwardNetwork(new BLayer[][]{new BLayer[]{inputLayer}, new BLayer[]{hiddenLayer1}, new BLayer[]{outputLayer}});
+		
+		long time=System.nanoTime();
+		new RProp(100, 50, 0.1f).trainNetwork(network, doublessToArrayss(trainImages),
+				doublessToArrayss(trainLabels), new EuclideanDistanceCostFunction());
+		time=System.nanoTime()-time;
+		System.out.println(time);
 	}
 	
 	public static void evalNNSplitBasicPretrain() throws IOException
@@ -324,8 +350,8 @@ public class MNISTNumbers
 	
 	private static Object[] getImagesAndLabels(String fileName) throws IOException
 	{
-	    BufferedInputStream labels = new BufferedInputStream(new FileInputStream("C:\\Users\\C\\workspace\\mlGPU\\data\\MNIST\\"+fileName+"-labels.idx1-ubyte"));
-		BufferedInputStream images = new BufferedInputStream(new FileInputStream("C:\\Users\\C\\workspace\\mlGPU\\data\\MNIST\\"+fileName+"-images.idx3-ubyte"));
+	    BufferedInputStream labels = new BufferedInputStream(new FileInputStream("/home/willie/workspace/mlGPU/data/MNIST_Numbers/"+fileName+"-labels.idx1-ubyte"));
+		BufferedInputStream images = new BufferedInputStream(new FileInputStream("/home/willie/workspace/mlGPU/data/MNIST_Numbers/"+fileName+"-images.idx3-ubyte"));
 	    
 		byte[] intBytes=new byte[4];
 		labels.read(intBytes);

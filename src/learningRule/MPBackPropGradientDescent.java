@@ -16,6 +16,7 @@ import network.Network;
 import network.SplitNetwork;
 import regularization.Regularization;
 import test.MNISTNumbers;
+import validation.Validator;
 
 public class MPBackPropGradientDescent extends MPLearningRule
 {
@@ -52,7 +53,7 @@ public class MPBackPropGradientDescent extends MPLearningRule
 
 	@Override
 	public void trainNetwork(SplitNetwork network, Matrix[][] inputs,
-			Matrix[][] desiredOutputs, CostFunction costFunction) 
+			Matrix[][] desiredOutputs, CostFunction costFunction, Validator validator) 
 	{		
 		totalBiasPDs=new Matrix[network.getLayers().length][];
 		totalWeightPDs=new Matrix[network.getLayers().length][][];
@@ -121,14 +122,14 @@ public class MPBackPropGradientDescent extends MPLearningRule
 						{
 							if(batchInd==0)
 							{
-								totalBiasPDs[layerInd][netInd]=totalBiasPDs[layerInd][netInd].scal(0, 1, totalBiasPDs[layerInd][netInd]);
+								totalBiasPDs[layerInd][netInd]=totalBiasPDs[layerInd][netInd].omscal(0);
 							}
 							totalBiasPDs[layerInd][netInd]=totalBiasPDs[layerInd][netInd].omadScale(biasPDs[layerInd][netInd], (float)(1.0/Math.min(batchSize, randomizedInputs.size()-sampleInd)));
 							for(int inputNetInd=0; inputNetInd<network.getLayers()[layerInd][netInd].getInputLayers().length; inputNetInd++)
 							{
 								if(batchInd==0)
 								{
-									totalWeightPDs[layerInd][netInd][inputNetInd]=totalWeightPDs[layerInd][netInd][inputNetInd].scal(0, 1, totalWeightPDs[layerInd][netInd][inputNetInd]);
+									totalWeightPDs[layerInd][netInd][inputNetInd]=totalWeightPDs[layerInd][netInd][inputNetInd].omscal(0);
 								}
 								totalWeightPDs[layerInd][netInd][inputNetInd]
 										=totalWeightPDs[layerInd][netInd][inputNetInd]
@@ -156,7 +157,7 @@ public class MPBackPropGradientDescent extends MPLearningRule
 				}
 			}
 			
-			System.out.println("******************* Epoch: "+currentEpoch);
+			System.out.println("Epoch: "+currentEpoch);
 			
 			
 			
@@ -164,11 +165,17 @@ public class MPBackPropGradientDescent extends MPLearningRule
 			{
 				double totalError=0.0;
 				Matrix[] networkOutput=null;
+				int outLen=0;
 				for(int sampleInd=0; sampleInd<inputs.length; sampleInd++)
 				{
 					networkOutput=network.getOutput(inputs[sampleInd]);
 					//networkOutput=new Matrix[]{((ConvolutionBLayerSparseVector)network.getLayers()[1][0]).getOutputPart(inputs[sampleInd], null, new FDMatrix(network.getLayers()[1][0].getOutputSize(), 1))};
 					totalError+=costFunction.getCost(inputs[sampleInd], networkOutput, desiredOutputs[sampleInd]);
+					outLen=networkOutput[0].getLen();
+					for(Matrix mat: networkOutput)
+					{
+						mat.clear();
+					}
 				}
 				totalError/=inputs.length;
 				totalError/=networkOutput[0].getLen();
@@ -186,7 +193,7 @@ public class MPBackPropGradientDescent extends MPLearningRule
 			System.out.println("Relative Error: "+relativeError);
 			*/
 			
-			if(network.layers.length>3)
+			if(true)
 			{
 				//MNISTNumbers.evalNumberNet(network);
 			}

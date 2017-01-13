@@ -2,58 +2,61 @@ package activationFunctions;
 
 import org.apache.commons.math3.linear.ArrayRealVector;
 
-public class SoftMax extends PoolingActivationFunction
+import nDimensionalMatrices.FDMatrix;
+import nDimensionalMatrices.Matrix;
+
+public class SoftMax extends ActivationFunction
 {
 
 	@Override
-	public ArrayRealVector applyActivationFunction(ArrayRealVector input)
+	public Matrix applyActivationFunction(Matrix input)
 	{
 		double expSum=0.0;
-		for(int inputInd=0; inputInd<input.getDimension(); inputInd++)
+		for(int inputInd=0; inputInd<input.getLen(); inputInd++)
 		{
-			expSum+=Math.exp(input.getEntry(inputInd));
+			expSum+=Math.exp(input.get(inputInd, 0));
 		}
-		ArrayRealVector result=new ArrayRealVector(input.getDimension());
-		for(int inputInd=0; inputInd<input.getDimension(); inputInd++)
+		for(int inputInd=0; inputInd<input.getLen(); inputInd++)
 		{
-			result.setEntry(inputInd, Math.exp(input.getEntry(inputInd))/expSum);
-		}
-		for(int inputInd=0; inputInd<input.getDimension(); inputInd++)
-		{
-			if(Double.isNaN(result.getEntry(inputInd)))
+			input.set(inputInd, 0, (float)(Math.exp(input.get(inputInd, 0))/expSum));
+			if(Float.isNaN((float)(Math.exp(input.get(inputInd, 0))/expSum)))
 			{
 				int u=0;
 			}
 		}
-		return result;
+		return input;
 	}
 
 	@Override
-	public ArrayRealVector getDerivatives(ArrayRealVector input)
+	public Matrix getDerivatives(Matrix input)
 	{
-		Sigmoid sigmoid=new Sigmoid();
-		ArrayRealVector derivative=new ArrayRealVector(input.getDimension());
-		for(int inputInd=0; inputInd<input.getDimension(); inputInd++)
+		Matrix derivative=new FDMatrix(input.getLen(), 1);
+		for(int inputInd=0; inputInd<input.getLen(); inputInd++)
 		{
-			for(int devInd=0; devInd<input.getDimension(); devInd++)
+			for(int devInd=0; devInd<input.getLen(); devInd++)
 			{
 				if(inputInd==devInd)
 				{
-					derivative.setEntry(devInd, 
-							derivative.getEntry(devInd)
-							+sigmoid.applyActivationFunction(input.getEntry(inputInd))
-							*(1-sigmoid.applyActivationFunction(input.getEntry(inputInd))));
+					derivative.set(devInd, 0,
+							derivative.get(devInd, 0)
+							+sigmoid(input.get(inputInd, 0))
+							*(1-sigmoid(input.get(inputInd, 0))));
 				}
 				else
 				{
-					derivative.setEntry(devInd, 
-							derivative.getEntry(devInd)
-							+sigmoid.applyActivationFunction(input.getEntry(inputInd))
-							*-sigmoid.applyActivationFunction(input.getEntry(inputInd)));
+					derivative.set(devInd, 0, 
+							derivative.get(devInd, 0)
+							+sigmoid(input.get(inputInd, 0))
+							*-sigmoid(input.get(inputInd, 0)));
 				}
 			}
 		}
 		return derivative;
+	}
+	
+	protected float sigmoid(float activation)
+	{
+		return 1.0f/(1.0f+(float)Math.exp(-activation));
 	}
 
 }

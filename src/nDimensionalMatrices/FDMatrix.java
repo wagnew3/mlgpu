@@ -24,6 +24,8 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Random;
 
+import org.jblas.FloatMatrix;
+
 import jcuda.Pointer;
 import jcuda.Sizeof;
 import jcuda.driver.CUcontext;
@@ -39,18 +41,23 @@ import learningRule.MPBackPropGradientDescent;
 public class FDMatrix extends Matrix
 {
 	
+	public static boolean GPU=false;
 	protected int rows;
 	protected int columns;
 	public float[] data;
 	protected boolean inGPU;
 	public Pointer gpuPointer;
 	protected static cublasHandle handle;
+	protected FloatMatrix mat;
 	
 	static
 	{
-		handle=new cublasHandle();
-        cublasCreate(handle);
-        JCublas.cublasInit();
+		if(GPU)
+		{
+			handle=new cublasHandle();
+	        cublasCreate(handle);
+	        JCublas.cublasInit();
+		}
 	}
 	
 	public FDMatrix(float[] newData, int rows, int columns)
@@ -58,9 +65,25 @@ public class FDMatrix extends Matrix
 		super(newData);
 		this.rows=rows;
 		this.columns=columns;
-		this.data=newData;
-		inGPU=false;
-		gpuPointer=null;
+		if(GPU)
+		{
+			
+			this.data=newData;
+			inGPU=false;
+			gpuPointer=null;
+		}
+		else
+		{
+			float[][] matData=new float[rows][columns];
+			for(int colInd=0; colInd<columns; colInd++)
+			{
+				for(int rowInd=0; rowInd<rows; rowInd++)
+				{
+					matData[rowInd][colInd]=newData[colInd*newData.length+rowInd];
+				}
+			}
+			mat=new FloatMatrix(newData);
+		}
 	}
 	
 	public FDMatrix(float[][] newData)
@@ -70,57 +93,77 @@ public class FDMatrix extends Matrix
 		rows=newData.length;
 		columns=newData[0].length;
 		
-		this.data=new float[newData.length*newData[0].length];
-		
-		for(int colInd=0; colInd<newData[0].length; colInd++)
+		if(GPU)
 		{
-			for(int rowInd=0; rowInd<newData.length; rowInd++)
+			this.data=new float[newData.length*newData[0].length];
+			
+			for(int colInd=0; colInd<newData[0].length; colInd++)
 			{
-				data[colInd*newData.length+rowInd]=newData[rowInd][colInd];
+				for(int rowInd=0; rowInd<newData.length; rowInd++)
+				{
+					data[colInd*newData.length+rowInd]=newData[rowInd][colInd];
+				}
 			}
+			inGPU=false;
+			gpuPointer=null;
 		}
-		inGPU=false;
-		gpuPointer=null;
+		else
+		{
+			mat=new FloatMatrix(newData);
+		}
 	}
 	
 	public FDMatrix(int rows, int columns)
 	{
 		this.rows=rows;
 		this.columns=columns;
-		data=null;
-		inGPU=false;
-		sendToGPU();
+		if(GPU)
+		{
+			data=null;
+			inGPU=false;
+			sendToGPU();
+		}
+		else
+		{
+			mat=new FloatMatrix(new float[rows][columns]);
+		}
 	}
 	
 	public void sendToGPU()
 	{
-		if(!inGPU)
+		if(GPU)
 		{
-			gpuPointer=GPUMemoryManager.alloc(getLen()*Sizeof.FLOAT);
-			inGPU=true;
-	        if(data!=null)
-	        {
-	        	cublasSetVector(getLen(), Sizeof.FLOAT, Pointer.to(data), 1, gpuPointer, 1);
-	        }
-	        else
-	        {
-	        	cudaMemset(gpuPointer, 0, getLen()*Sizeof.FLOAT);
-	        	//cublasSetVector(getLen(), Sizeof.FLOAT, Pointer.to(new float[getLen()]), 1, gpuPointer, 1);
-	        	//omscal(0.0f);
-	        }
-	        data=null;
+			if(!inGPU)
+			{
+				gpuPointer=GPUMemoryManager.alloc(getLen()*Sizeof.FLOAT);
+				inGPU=true;
+		        if(data!=null)
+		        {
+		        	cublasSetVector(getLen(), Sizeof.FLOAT, Pointer.to(data), 1, gpuPointer, 1);
+		        }
+		        else
+		        {
+		        	cudaMemset(gpuPointer, 0, getLen()*Sizeof.FLOAT);
+		        	//cublasSetVector(getLen(), Sizeof.FLOAT, Pointer.to(new float[getLen()]), 1, gpuPointer, 1);
+		        	//omscal(0.0f);
+		        }
+		        data=null;
+			}
 		}
 	}
 	
 	public void getFromGPU()
 	{
-		if(inGPU)
+		if(GPU)
 		{
-			data=new float[rows*columns];
-			cublasGetVector(rows*columns, Sizeof.FLOAT, gpuPointer, 1, Pointer.to(data), 1);
-			GPUMemoryManager.free(gpuPointer);
-	        gpuPointer=null;
-	        inGPU=false;
+			if(inGPU)
+			{
+				data=new float[rows*columns];
+				cublasGetVector(rows*columns, Sizeof.FLOAT, gpuPointer, 1, Pointer.to(data), 1);
+				GPUMemoryManager.free(gpuPointer);
+		        gpuPointer=null;
+		        inGPU=false;
+			}
 		}
 	}
 	
@@ -140,22 +183,28 @@ public class FDMatrix extends Matrix
 	@Override
 	public void clear()
 	{
-		if(inGPU)
+		if(GPU)
 		{
-			GPUMemoryManager.free(gpuPointer);
-	        gpuPointer=null;
-	        inGPU=false;
+			if(inGPU)
+			{
+				GPUMemoryManager.free(gpuPointer);
+		        gpuPointer=null;
+		        inGPU=false;
+			}
 		}
 	}
 	
 	@Override
 	public void finalize()
 	{
-		if(inGPU)
+		if(GPU)
 		{
-			GPUMemoryManager.free(gpuPointer);
-	        gpuPointer=null;
-	        inGPU=false;
+			if(inGPU)
+			{
+				GPUMemoryManager.free(gpuPointer);
+		        gpuPointer=null;
+		        inGPU=false;
+			}
 		}
 	}
 	
@@ -180,22 +229,43 @@ public class FDMatrix extends Matrix
 	@Override
 	public float get(int row, int col) 
 	{
-		getFromGPU();
-		return data[col*rows+row];
+		if(GPU)
+		{
+			getFromGPU();
+			return data[col*rows+row];
+		}
+		else
+		{
+			return mat.get(row, col);
+		}
 	}
 
 	@Override
 	public void set(int row, int col, float val) 
 	{
-		getFromGPU();
-		data[col*rows+row]=val;
+		if(GPU)
+		{
+			getFromGPU();
+			data[col*rows+row]=val;
+		}
+		else
+		{
+			mat.put(row, col, val);
+		}
 	}
 	
 	@Override
-	public  float[] getData()
+	public float[] getData()
 	{
-		getFromGPU();
-		return data;
+		if(GPU)
+		{
+			getFromGPU();
+			return data;
+		}
+		else
+		{
+			return mat.data;
+		}
 	}
 	
 	@Override
@@ -240,41 +310,44 @@ public class FDMatrix extends Matrix
 	@Override
 	public Matrix mmult(Matrix toMultiplyBy) 
 	{
-		Matrix matC=new FDMatrix(rows, ((FDMatrix)toMultiplyBy).columns);
-		return sgemm(false, false, toMultiplyBy, 1.0f, 0.0f, matC, matC);
+		FDMatrix matC=new FDMatrix(rows, ((FDMatrix)toMultiplyBy).columns);
+		if(GPU)
+		{
+			return sgemm(false, false, toMultiplyBy, 1.0f, 0.0f, matC, matC);
+		}
+		else
+		{
+			matC.mat=mat.mmul(((FDMatrix)toMultiplyBy).mat);
+			return matC;
+		}
 	}
 
 	@Override
 	public Matrix ommult(Matrix toMultiplyBy) 
 	{
-		return sgemm(false, false, toMultiplyBy, 1.0f, 0.0f, this, this);
+		if(GPU)
+		{
+			return sgemm(false, false, toMultiplyBy, 1.0f, 0.0f, this, this);
+		}
+		else
+		{
+			mat.mmuli(((FDMatrix)toMultiplyBy).mat);
+			return this;
+		}
 	}
 	
 	@Override
 	public Matrix oebemult(Matrix multVec)
 	{
-		return sbmv('u', 0, 1.0f, this, multVec, 0.0f, this);
-		
-		/*
-		getFromGPU();
-		float[] resultData=new float[data.length];
-		if(multVec.getCols()==1)
+		if(GPU)
 		{
-			for(int rowInd=0; rowInd<multVec.getRows(); rowInd++)
-			{
-				resultData[rowInd]=get(rowInd, 0)*multVec.get(rowInd, 0);
-			}
-			return new FDMatrix(resultData, resultData.length, 1);
+			return sbmv('u', 0, 1.0f, this, multVec, 0.0f, this);
 		}
 		else
 		{
-			for(int colInd=0; colInd<multVec.getCols(); colInd++)
-			{
-				resultData[colInd]=get(0, colInd)*multVec.get(0, colInd);
-			}
-			return new FDMatrix(resultData, 1, resultData.length);
+			mat.muli(((FDMatrix)multVec).mat);
+			return this;
 		}
-		*/
 	}
 
 	@Override
@@ -287,80 +360,176 @@ public class FDMatrix extends Matrix
 	@Override
 	public Matrix omscal(float toScaleBy) 
 	{
-		return scal(toScaleBy, 1, this);
+		if(GPU)
+		{
+			return scal(toScaleBy, 1, this);
+		}
+		else
+		{
+			mat.muli(toScaleBy);
+			return this;
+		}
 	}
 
 	@Override
 	public Matrix mad(Matrix toAddTo) 
 	{
-		Matrix resMat=new FDMatrix(rows, columns);
-		return saxpy(1.0f, toAddTo, 1, this, 1, resMat);
+		FDMatrix resMat=new FDMatrix(rows, columns);
+		if(GPU)
+		{
+			return saxpy(1.0f, toAddTo, 1, this, 1, resMat);
+		}
+		else
+		{
+			resMat.mat=mat.add(((FDMatrix)toAddTo).mat);
+			return resMat;
+		}
 	}
 
 	@Override
 	public Matrix omad(Matrix toAddTo)
 	{
-		return saxpy(1.0f, toAddTo, 1, this, 1, this);
+		if(GPU)
+		{
+			return saxpy(1.0f, toAddTo, 1, this, 1, this);
+		}
+		else
+		{
+			mat.addi(((FDMatrix)toAddTo).mat);
+			return this;
+		}
 	}
 	
 	@Override
 	public Matrix madScale(Matrix toAddTo, float scaleAddBy)
 	{
-		Matrix resMat=new FDMatrix(rows, columns);
-		return saxpy(scaleAddBy, toAddTo, 1, this, 1, resMat);
+		FDMatrix resMat=new FDMatrix(rows, columns);
+		if(GPU)
+		{
+			return saxpy(scaleAddBy, toAddTo, 1, this, 1, resMat);
+		}
+		else
+		{
+			resMat.mat=mat.add(((FDMatrix)toAddTo).mat.mul(scaleAddBy));
+			return resMat;
+		}
 	}
 	
 	@Override
 	public Matrix omadScale(Matrix toAddTo, float scaleAddBy)
 	{
-		return saxpy(scaleAddBy, toAddTo, 1, this, 1, this);
+		if(GPU)
+		{
+			return saxpy(scaleAddBy, toAddTo, 1, this, 1, this);
+		}
+		else
+		{
+			mat.addi(((FDMatrix)toAddTo).mat.mul(scaleAddBy));
+			return this;
+		}
 	}
 
 	@Override
 	public Matrix msub(Matrix toSubtractBy, Matrix result) 
 	{
-		this.sendToGPU();
-		((FDMatrix)result).sendToGPU();
-		cublasScopy(handle, getLen(), gpuPointer, 1, ((FDMatrix)result).gpuPointer, 1);
-		return saxpy(-1.0f, toSubtractBy, 1, result, 1, result);
+		if(GPU)
+		{
+			this.sendToGPU();
+			((FDMatrix)result).sendToGPU();
+			cublasScopy(handle, getLen(), gpuPointer, 1, ((FDMatrix)result).gpuPointer, 1);
+			return saxpy(-1.0f, toSubtractBy, 1, result, 1, result);
+		}
+		else
+		{
+			((FDMatrix)result).mat=mat.sub(((FDMatrix)toSubtractBy).mat);
+			return result;
+		}
 	}
 
 	@Override
 	public Matrix omsub(Matrix toSubtractBy)
 	{
-		return saxpy(-1.0f, toSubtractBy, 1, this, 1, this);
+		if(GPU)
+		{
+			return saxpy(-1.0f, toSubtractBy, 1, this, 1, this);
+		}
+		else
+		{
+			mat.subi(((FDMatrix)toSubtractBy).mat);
+			return this;
+		}
 	}
 	
 	@Override
 	public Matrix msubScale(Matrix toSubtractBy, float scaleSubBy) 
 	{
 		Matrix resMat=new FDMatrix(rows, columns);
-		return saxpy(-scaleSubBy, toSubtractBy, 1, this, 1, resMat);
+		if(GPU)
+		{
+			return saxpy(-scaleSubBy, toSubtractBy, 1, this, 1, resMat);
+		}
+		else
+		{
+			((FDMatrix)resMat).mat=mat.sub(((FDMatrix)toSubtractBy).mat.mul(scaleSubBy));
+			return resMat;
+		}
 	}
 
 	@Override
 	public Matrix omsubScale(Matrix toSubtractBy, float scaleSubBy)
 	{
-		return saxpy(-scaleSubBy, toSubtractBy, 1, this, 1, this);
+		if(GPU)
+		{
+			return saxpy(-scaleSubBy, toSubtractBy, 1, this, 1, this);
+		}
+		else
+		{
+			mat.subi(((FDMatrix)toSubtractBy).mat.mul(scaleSubBy));
+			return this;
+		}
 	}
 	
 	@Override
 	public float dot(Matrix toDotWith) 
 	{
-		return sdot(this, 1, toDotWith, 1);
+		if(GPU)
+		{
+			return sdot(this, 1, toDotWith, 1);
+		}
+		else
+		{
+			return mat.dot(((FDMatrix)toDotWith).mat);
+		}
 	}
 	
 	@Override
-	public Matrix matVecMultScale(Matrix mat, Matrix vec, float scaleSubBy)
+	public Matrix matVecMultScale(Matrix mat, Matrix vec, float scaleMatBy)
 	{
 		Matrix result=new FDMatrix(mat.getRows(), 1);
-		return sgemv(false, scaleSubBy, mat, vec, 1, 0.0f, result, 1, false, result);
+		if(GPU)
+		{
+			return sgemv(false, scaleMatBy, mat, vec, 1, 0.0f, result, 1, false, result);
+		}
+		else
+		{
+			((FDMatrix)result).mat=((FDMatrix)mat).mat.mmul(((FDMatrix)vec).mat.mul(scaleMatBy));
+			return result;
+		}
 	}
 	
 	@Override
-	public Matrix omatVecMultScale(Matrix mat, Matrix vec, float scaleSubBy)
+	public Matrix omatVecMultScale(Matrix mat, Matrix vec, float scaleMatBy)
 	{
-		return sgemv(false, scaleSubBy, mat, vec, 1, 0.0f, vec, 1, false, vec);
+		if(GPU)
+		{
+			return sgemv(false, scaleMatBy, mat, vec, 1, 0.0f, vec, 1, false, vec);
+		}
+		else
+		{
+			FDMatrix result=new FDMatrix(mat.getRows(), 1);
+			result.mat=((FDMatrix)mat).mat.mmul(((FDMatrix)vec).mat.muli(scaleMatBy));
+			return result;
+		}
 	}
 	
 	@Override
@@ -368,36 +537,84 @@ public class FDMatrix extends Matrix
 	{
 		((FDMatrix)vecAdd).sendToGPU();
 		Matrix result=new FDMatrix(mat.getRows(), 1);
-		sgemv(false, scaleMultBy, mat, vecMult, 1, 0.0f, result, 1, true, result);
-		return saxpy(1.0f, vecAdd, 1, result, 1, result);
-		//return sgemv(false, scaleSubBy, mat, vecMult, 1, 1.0f, vecAdd, 1, true, result);
+		if(GPU)
+		{
+			sgemv(false, scaleMultBy, mat, vecMult, 1, 0.0f, result, 1, true, result);
+			return saxpy(1.0f, vecAdd, 1, result, 1, result);
+		}
+		else
+		{
+			((FDMatrix)result).mat=((FDMatrix)mat).mat
+					.mmul(((FDMatrix)vecMult).mat.mul(scaleMultBy)).add(((FDMatrix)vecAdd).mat);
+			return result;
+		}
 	}
 	
 	@Override
 	public Matrix omatVecMultScaleAdd(Matrix mat, Matrix vecMult, float scaleMultBy, Matrix vecAdd, Matrix result, float scaleResultBy)
 	{
-		sgemv(false, scaleMultBy, mat, vecMult, 1, scaleResultBy, result, 1, true, result);
-		return saxpy(1.0f, vecAdd, 1, result, 1, result);
-		
-		//return sgemv(false, scaleSubBy, mat, vec, 1, 1.0f, vecAdd, 1, true, result);
+		if(GPU)
+		{
+			sgemv(false, scaleMultBy, mat, vecMult, 1, scaleResultBy, result, 1, true, result);
+			return saxpy(1.0f, vecAdd, 1, result, 1, result);
+		}
+		else
+		{
+			((FDMatrix)result).mat.muli(scaleResultBy);
+			((FDMatrix)result).mat.addi(((FDMatrix)mat).mat
+					.mmul(((FDMatrix)vecMult).mat.mul(scaleMultBy)));
+			((FDMatrix)result).mat.addi(((FDMatrix)vecAdd).mat);
+			return result;
+		}
 	}
 	
 	@Override
-	public Matrix matVecMultScaleAddScale(Matrix mat, Matrix vecMult, float scaleSubBy, Matrix vecAdd, float scaleAddBy)
+	public Matrix omatVecMultScaleAdd(boolean transPose, Matrix mat, Matrix vecMult, float scaleMultBy, Matrix vecAdd, Matrix result, float scaleResultBy)
+	{
+		if(GPU)
+		{
+			sgemv(false, scaleMultBy, mat, vecMult, 1, scaleResultBy, result, 1, true, result);
+			return saxpy(1.0f, vecAdd, 1, result, 1, result);
+		}
+		else
+		{
+			
+		}
+	}
+	
+	@Override
+	public Matrix matVecMultScaleAddScale(Matrix mat, Matrix vecMult, float scaleMultBy, Matrix vecAdd, float scaleAddBy)
 	{
 		((FDMatrix)vecAdd).sendToGPU();
 		Matrix result=new FDMatrix(mat.getRows(), 1);
-		sgemv(false, scaleSubBy, mat, vecMult, 1, 0.0f, result, 1, true, result);
-		return saxpy(scaleAddBy, vecAdd, 1, result, 1, result);
-		//return sgemv(false, scaleSubBy, mat, vecMult, 1, 1.0f, vecAdd, 1, true, result);
+		if(GPU)
+		{
+			sgemv(false, scaleMultBy, mat, vecMult, 1, 0.0f, result, 1, true, result);
+			return saxpy(scaleAddBy, vecAdd, 1, result, 1, result);
+		}
+		else
+		{
+			((FDMatrix)result).mat.muli(0.0f);
+			((FDMatrix)result).mat.addi(((FDMatrix)mat).mat
+					.mmul(((FDMatrix)vecMult).mat.mul(scaleMultBy)));
+			((FDMatrix)result).mat.addi(((FDMatrix)vecAdd).mat);
+			return result;
+		}
 	}
 	
 	@Override
 	public Matrix outProd(Matrix vecA, Matrix vecB, Matrix result)
 	{
-		//return sger(1.0f, vecA, 1, vecB, 1, result);
-		return vecA.sgemm(false, true,
-				vecB, 1.0f, 0.0f, result, result);
+		if(GPU)
+		{
+			return vecA.sgemm(false, true,
+					vecB, 1.0f, 0.0f, result, result);
+		}
+		else
+		{
+			((FDMatrix)result).mat=((FDMatrix)vecA).mat.mmul(((FDMatrix)vecB).mat.transpose());
+			return result;
+		}
 	}
 
 	@Override
@@ -492,73 +709,91 @@ public class FDMatrix extends Matrix
 	public Matrix sgemv(boolean transpose, float scaleFactor, Matrix matA, 
 			Matrix vecX, int incx, float beta, Matrix vecY, int incy, boolean addY, Matrix result)
 	{
-		//System.out.println("sgemv_start");
-		Pointer d_C=null;
-		((FDMatrix)matA).sendToGPU();
-		((FDMatrix)vecX).sendToGPU();
-		if(addY)
+		if(GPU)
 		{
-			((FDMatrix)vecY).sendToGPU();
-			d_C=((FDMatrix)vecY).gpuPointer;
-			((FDMatrix)result).setGPUPointer(d_C);
+			//System.out.println("sgemv_start");
+			Pointer d_C=null;
+			((FDMatrix)matA).sendToGPU();
+			((FDMatrix)vecX).sendToGPU();
+			if(addY)
+			{
+				((FDMatrix)vecY).sendToGPU();
+				d_C=((FDMatrix)vecY).gpuPointer;
+				((FDMatrix)result).setGPUPointer(d_C);
+			}
+			else
+			{
+				d_C=((FDMatrix)result).gpuPointer;
+			}
+			
+			/*
+	        Pointer d_A = new Pointer();
+	        Pointer d_B = new Pointer();
+	        
+	        cudaMalloc(d_A, ((FDMatrix)matA).data.length*Sizeof.FLOAT);
+	        cudaMalloc(d_B, ((FDMatrix)vecX).data.length*Sizeof.FLOAT);
+	        
+	        cublasSetVector(((FDMatrix)matA).data.length, Sizeof.FLOAT, Pointer.to(((FDMatrix)matA).data), 1, d_A, 1);
+	        cublasSetVector(((FDMatrix)vecX).data.length, Sizeof.FLOAT, Pointer.to(((FDMatrix)vecX).data), 1, d_B, 1);
+			
+	        if(addY)
+	        {
+	        	cublasSetVector(((FDMatrix)vecY).data.length, Sizeof.FLOAT, Pointer.to(((FDMatrix)vecY).data), 1, d_C, 1);
+	        }
+	        else
+	        {
+	        	beta=0.0f;
+	        }
+	        */
+			
+			if(!addY)
+			{
+				beta=0.0f;
+			}
+	        
+	        Pointer pAlpha = Pointer.to(new float[]{scaleFactor});
+	        Pointer pBeta = Pointer.to(new float[]{beta});
+	        
+	        if(transpose)
+	        {
+	        	cublasSgemv(handle, CUBLAS_OP_T, ((FDMatrix)matA).rows, ((FDMatrix)matA).columns, 
+	        			pAlpha, ((FDMatrix)matA).gpuPointer, ((FDMatrix)matA).rows,
+	        			((FDMatrix)vecX).gpuPointer, incx, pBeta, d_C, incy);
+	        }
+	        else
+	        {
+	        	cublasSgemv(handle, CUBLAS_OP_N, ((FDMatrix)matA).rows, ((FDMatrix)matA).columns, 
+	        			pAlpha, ((FDMatrix)matA).gpuPointer, ((FDMatrix)matA).rows,
+	        			((FDMatrix)vecX).gpuPointer, incx, pBeta, d_C, incy);
+	        }
+	        
+	        /*
+	        cublasGetVector(((FDMatrix)result).data.length, Sizeof.FLOAT, d_C, 1, Pointer.to(((FDMatrix)result).data), 1);
+	
+	        cudaFree(d_A);
+	        cudaFree(d_B);
+	        cudaFree(d_C);
+			*/
+	        
+	        //System.out.println("sgemv_end");
+	        
+	        return result;
 		}
 		else
 		{
-			d_C=((FDMatrix)result).gpuPointer;
+			((FDMatrix)result).mat.muli(beta);
+			if(transpose)
+			{
+				((FDMatrix)result).mat.addi(((FDMatrix)matA).mat.transpose()
+						.mmul(((FDMatrix)vecX).mat.mul(scaleFactor)));
+			}
+			else
+			{
+				((FDMatrix)result).mat.addi(((FDMatrix)matA).mat
+						.mmul(((FDMatrix)vecX).mat.mul(scaleFactor)));
+			}
+			return result;
 		}
-		
-		/*
-        Pointer d_A = new Pointer();
-        Pointer d_B = new Pointer();
-        
-        cudaMalloc(d_A, ((FDMatrix)matA).data.length*Sizeof.FLOAT);
-        cudaMalloc(d_B, ((FDMatrix)vecX).data.length*Sizeof.FLOAT);
-        
-        cublasSetVector(((FDMatrix)matA).data.length, Sizeof.FLOAT, Pointer.to(((FDMatrix)matA).data), 1, d_A, 1);
-        cublasSetVector(((FDMatrix)vecX).data.length, Sizeof.FLOAT, Pointer.to(((FDMatrix)vecX).data), 1, d_B, 1);
-		
-        if(addY)
-        {
-        	cublasSetVector(((FDMatrix)vecY).data.length, Sizeof.FLOAT, Pointer.to(((FDMatrix)vecY).data), 1, d_C, 1);
-        }
-        else
-        {
-        	beta=0.0f;
-        }
-        */
-		
-		if(!addY)
-		{
-			beta=0.0f;
-		}
-        
-        Pointer pAlpha = Pointer.to(new float[]{scaleFactor});
-        Pointer pBeta = Pointer.to(new float[]{beta});
-        
-        if(transpose)
-        {
-        	cublasSgemv(handle, CUBLAS_OP_T, ((FDMatrix)matA).rows, ((FDMatrix)matA).columns, 
-        			pAlpha, ((FDMatrix)matA).gpuPointer, ((FDMatrix)matA).rows,
-        			((FDMatrix)vecX).gpuPointer, incx, pBeta, d_C, incy);
-        }
-        else
-        {
-        	cublasSgemv(handle, CUBLAS_OP_N, ((FDMatrix)matA).rows, ((FDMatrix)matA).columns, 
-        			pAlpha, ((FDMatrix)matA).gpuPointer, ((FDMatrix)matA).rows,
-        			((FDMatrix)vecX).gpuPointer, incx, pBeta, d_C, incy);
-        }
-        
-        /*
-        cublasGetVector(((FDMatrix)result).data.length, Sizeof.FLOAT, d_C, 1, Pointer.to(((FDMatrix)result).data), 1);
-
-        cudaFree(d_A);
-        cudaFree(d_B);
-        cudaFree(d_C);
-		*/
-        
-        //System.out.println("sgemv_end");
-        
-        return result;
 	}
 	
 	public Matrix sger(float alpha, Matrix vecX, int incx, Matrix vecY, int incy, Matrix matA) 
@@ -755,6 +990,24 @@ public class FDMatrix extends Matrix
         //System.out.printl("scal_end");
         
         return result;
+	}
+	
+	public float asum()
+	{
+		cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_DEVICE);
+		sendToGPU();
+
+		float alpha=0.0f;
+		Pointer pAlpha = Pointer.to(new float[]{alpha});
+    	cublasSasum(handle, rows*columns, gpuPointer, 1, pAlpha);
+
+    	float[] result=new float[1];
+        cublasGetVector(1, Sizeof.FLOAT, pAlpha, 1, Pointer.to(result), 1);
+        cudaFree(pAlpha);
+        
+        cublasSetPointerMode(handle, CUBLAS_POINTER_MODE_HOST);
+        
+        return result[0];
 	}
 	
 	public float getSum()
@@ -1034,14 +1287,40 @@ public class FDMatrix extends Matrix
 	@Override
 	public String toString()
 	{
-		if(inGPU)
+		if(GPU)
 		{
-			data=new float[rows*columns];
-			cublasGetVector(rows*columns, Sizeof.FLOAT, gpuPointer, 1, Pointer.to(data), 1);
+			if(inGPU)
+			{
+				data=new float[rows*columns];
+				cublasGetVector(rows*columns, Sizeof.FLOAT, gpuPointer, 1, Pointer.to(data), 1);
+			}
+			return Arrays.toString(data);
 		}
-		return Arrays.toString(data);
+		else
+		{
+			return Arrays.toString(mat.data);
+		}
+		
 	}
 
-
+	@Override
+	public Matrix copyTo(Matrix mat)
+	{
+		if(GPU)
+		{
+			sendToGPU();
+			((FDMatrix)mat).sendToGPU();
+			if(!gpuPointer.equals(((FDMatrix)mat).gpuPointer))
+			{
+				cublasScopy(handle, getLen(), gpuPointer, 1, ((FDMatrix)mat).gpuPointer, 1);
+			}
+			return mat;
+		}
+		else
+		{
+			((FDMatrix)mat).mat.copy(this.mat);
+			return mat;
+		}
+	}
 
 }

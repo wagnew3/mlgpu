@@ -144,12 +144,12 @@ public class TempDiffLambdaEMLStateNNGame extends ReinforcementLearner
 					policies[playerInd].trainNN();
 					if(playerInd==0)
 					{
-						Network.saveNetwork(saveLocationA, policies[playerInd].network);
+						Network.saveFilter(saveLocationA, policies[playerInd].network);
 						//policies[playerInd].network=Network.loadNetwork(saveLocationA);
 					}
 					else
 					{
-						Network.saveNetwork(saveLocationB, policies[playerInd].network);
+						Network.saveFilter(saveLocationB, policies[playerInd].network);
 						//policies[playerInd].network=Network.loadNetwork(saveLocationB);
 					}
 				}

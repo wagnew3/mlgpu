@@ -1,15 +1,23 @@
 package filters;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.nio.file.Files;
 
 import nDimensionalMatrices.FDMatrix;
 import nDimensionalMatrices.Matrix;
+import network.SplitNetwork;
 
 public class ScaleFilter implements Serializable
 {
 	
 	double offset=0.0;
-	double scaleFactor=1.0;
+	public double scaleFactor=1.0;
 	
 	public ScaleFilter()
 	{
@@ -49,6 +57,15 @@ public class ScaleFilter implements Serializable
 	public Matrix[] scaleData(Matrix[] data, boolean setScale)
 	{
 		return scaleData(new Matrix[][]{data}, setScale)[0];
+	}
+	
+	public Matrix[][] scaleData(Matrix[][] data)
+	{
+		for(int matInd=0; matInd<data.length; matInd++)
+		{
+			data[matInd]=scaleData(data[matInd]);
+		}
+		return data;
 	}
 	
 	public Matrix[][] scaleData(Matrix[][] data, boolean setScale)
@@ -98,6 +115,44 @@ public class ScaleFilter implements Serializable
 			}
 		}
 		return data;
+	}
+	
+	public static void saveFilter(File saveLocation, ScaleFilter filter)
+	{
+		ByteArrayOutputStream bOut=new ByteArrayOutputStream();
+        ObjectOutputStream oOut;
+		try 
+		{
+			oOut=new ObjectOutputStream(bOut);
+			oOut.writeUnshared(filter);
+	        oOut.close();
+	        Files.write(saveLocation.toPath(), bOut.toByteArray());
+	        bOut.close();
+		}
+		catch (IOException e) 
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	public static ScaleFilter loadFilter(File saveLocation)
+	{
+		
+		try 
+		{
+			byte[] networkBytes=Files.readAllBytes(saveLocation.toPath());
+			ByteArrayInputStream bIn=new ByteArrayInputStream(networkBytes);
+	        ObjectInputStream oIn=new ObjectInputStream(bIn);       
+	        ScaleFilter filter=(ScaleFilter)oIn.readObject();
+	        oIn.close();
+	        bIn.close();
+	        return filter;
+		} 
+		catch (IOException | ClassNotFoundException e) 
+		{
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 }

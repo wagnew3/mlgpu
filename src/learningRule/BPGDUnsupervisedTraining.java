@@ -21,13 +21,18 @@ import nDimensionalMatrices.SparseFMatrix;
 import network.SplitFeedForwardNetwork;
 import network.SplitNetwork;
 import regularization.L2Regularization;
+import validation.NoValidation;
+import validation.Validator;
 
 public class BPGDUnsupervisedTraining extends MPBackPropGradientDescent
 {
+	
+	public MPLearningRule backprop;
 
-	public BPGDUnsupervisedTraining(int batchSize, int epochs, float learningRate) 
+	public BPGDUnsupervisedTraining(MPLearningRule backprop) 
 	{
-		super(batchSize, epochs, learningRate);
+		super(-1, -1, -1f);
+		this.backprop=backprop;
 	}
 
 	public SplitNetwork unsupervisedTrain(SplitNetwork network, Matrix[][] inputs,
@@ -120,16 +125,13 @@ public class BPGDUnsupervisedTraining extends MPBackPropGradientDescent
 									new BLayer[]{network.layers[layerIndex][netLayerIndex]}, 
 									outputLayers});
 						
-						float lambda=0.2f;
-						MPBackPropGradientDescent bpgd=null;
-						bpgd=new MPBackPropGradientDescent(100, 10, lambda);
-						bpgd.setRegularization(new L2Regularization(outputSize, lambda, 0.1));
-						bpgd
-						.trainNetwork(encoderNetwork, 
+						backprop.trainNetwork(encoderNetwork, 
 								savedInputs, 
 								layerInputs,
-								new EuclideanDistanceCostFunction());
+								costFunction,
+								new NoValidation(null, null));
 						network.layers[layerIndex-1][0].setInputLayers(oldPrevInputLayers);
+						savedInputs=null;
 					}
 					network.layers[layerIndex][netLayerIndex].outputLayers=new ArrayList<>();
 					network.layers[layerIndex][netLayerIndex].setInputLayers(inputLayers);
@@ -156,15 +158,11 @@ public class BPGDUnsupervisedTraining extends MPBackPropGradientDescent
 									new BLayer[]{network.layers[layerIndex][netLayerIndex]}, 
 									outputLayers});
 						
-						float lambda=0.2f;
-						MPBackPropGradientDescent bpgd=null;
-						bpgd=new MPBackPropGradientDescent(100, 10, lambda);
-						bpgd.setRegularization(new L2Regularization(outputSize, lambda, 0.1));
-						bpgd
-						.trainNetwork(encoderNetwork, 
+						backprop.trainNetwork(encoderNetwork, 
 								layerInputs, 
 								layerInputs,
-								new EuclideanDistanceCostFunction());
+								costFunction,
+								new NoValidation(null, null));
 					}
 					else
 					{
@@ -177,23 +175,32 @@ public class BPGDUnsupervisedTraining extends MPBackPropGradientDescent
 							new BLayer[][]{
 								inputLayers, 
 								new BLayer[]{network.layers[layerIndex][netLayerIndex]}});
-					float lambda=0.01f;
-					MPBackPropGradientDescent bpgd=new MPBackPropGradientDescent(100, 10, lambda);
-					bpgd.setRegularization(new L2Regularization(network.layers[layerIndex][netLayerIndex].getOutputSize(), lambda, 0.1));
-					bpgd
-					.trainNetwork(encoderNetwork, 
+					backprop.trainNetwork(encoderNetwork, 
 							layerInputs, 
 							desiredOutputs,
-							new EuclideanDistanceCostFunction());
+							costFunction,
+							new NoValidation(null, null));
 				}
 				
 				network.layers[layerIndex][netLayerIndex].setInputLayers(oldInputLayers);
 				network.layers[layerIndex][netLayerIndex].setOutputLayers(oldOutputLayers);
 				
+				layerOutputs.clear();
 				layerOutputs.put(network.layers[layerIndex][netLayerIndex], currentLayerOutputs);
 			}
 		}
 		return network;
+	}
+	
+	@Override
+	public void trainNetwork(SplitNetwork network, Matrix[][] inputs,
+			Matrix[][] desiredOutputs, CostFunction costFunction, Validator validator) 
+	{	
+		backprop.trainNetwork(network, 
+				inputs, 
+				desiredOutputs,
+				costFunction,
+				validator);
 	}
 
 }

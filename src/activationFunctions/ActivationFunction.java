@@ -13,15 +13,24 @@ public abstract class ActivationFunction implements Serializable
 		
 	}
 	
+	public abstract Matrix applyActivationFunction(Matrix input);
+	
+	public abstract Matrix getDerivatives(Matrix input);
+	
+	/*
 	public Matrix applyActivationFunction(Matrix input)
 	{
+		//applyActivationFunction(((FDMatrix)input));
+		
 		for(int inputIndex=0; inputIndex<input.getRows(); inputIndex++)
 		{
 			((FDMatrix)input).set(inputIndex, 0, applyActivationFunction(((FDMatrix)input).get(inputIndex, 0)));
 			//((FDMatrix)input).data[inputIndex]=applyActivationFunction(((FDMatrix)input).data[inputIndex]);
 		}
+		
 		return input;
 	}
+
 	
 	public abstract float applyActivationFunction(float input);
 	
@@ -37,5 +46,6 @@ public abstract class ActivationFunction implements Serializable
 	}
 	
 	public abstract float getDerivative(float input);
+	*/
 	
 }

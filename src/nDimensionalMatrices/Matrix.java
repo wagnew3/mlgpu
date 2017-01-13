@@ -5,7 +5,7 @@ import java.io.Serializable;
 public abstract class Matrix implements Serializable
 {
 	
-	public static String workspaceDir="/nethome/wagnew3/gtCompPrograms/workspace/";
+	public static String workspaceDir="/home/willie/workspace/";
 	
 	public Matrix()
 	{
@@ -96,5 +96,10 @@ public abstract class Matrix implements Serializable
 			float scaleAddBy);
 
 	public abstract Matrix scal(float alpha, int incx, Matrix result);
+
+	public Matrix copyTo(Matrix mat) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 	
 }
