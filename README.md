@@ -6,6 +6,14 @@ However, implementing everything from scratch, including GPU acceleration, was a
 
 Many of the basics of reinforcement machine learning I learned from https://webdocs.cs.ualberta.ca/~sutton/book/ebook/the-book.html, and supervised machine learning http://neuralnetworksanddeeplearning.com/
 
+##Requirements
+* JCUDA >=0.6 (and necessary GPU and CUDA setup)
+* Apache Commons Math 3.x
+
+##Easy Things to Run
+* Reinforcement Learning+Neural Network State Valuation Checkers
+![alt tag](http://url/to/img.png)
+
 ##Reinforcement Learning
 * Dynamic Programming Policy Iteration
 * Dynamic Programming Value Iteration
@@ -17,8 +25,8 @@ Many of the basics of reinforcement machine learning I learned from https://webd
 * Feedforward Neural Networks
 * Fully Connected Layers
 * Convolution and Pooling Layers
-* Fully Connected Layers Optimized for Spare Inputs
-* Convolution Layers Optimized for Spare Inputs
+* Fully Connected Layers Optimized for Sparse Inputs
+* Convolution Layers Optimized for Sparse Inputs
 * Sigmoid, TanH, ReLU, SoftMax
 * Euclidean and Cross Entropy Loss
 * L2 Regularization
@@ -34,5 +42,5 @@ Many of the basics of reinforcement machine learning I learned from https://webd
 ##Lessons Learned
 * Moving data between CPU and GPU memory is slow and must be essentially eliminated to not be a bottleneck.
 * CUDA memory management is weird. When transferring a matrix from CPU to GPU memory, profiling revealed that it is faster to zero currently malloc'ed (but no longer needed) GPU memory and then copy the matrix from CPU memory into this zeroed GPU memory than to malloc new GPU memory and copy the matrix into that memory. However, I suspect there is much I do not understand about GPU memory (ex. asynchronous transfers).
-* **Actually relevant to major ML libaries** Although I did not know it when I wrote this library, ML libraries like Theano and Tensorflow will copy over large chunks of memory to GPU-ex. a mini batch of training examples. This is a problem if the minibatch size exceeds the GPU memory size. While there are of course programmatic ways around this, my library completely avoids this problem by only copying matrices to GPU when a GPU function (ex. saxpy) has been called on them, and copying them back to CPU only when a CPU only function has been called on them. It would be a simple matter to combine this with making space if necessary on the GPU by sending matrices in GPU memory back to CPU memory, and drawing on the rich caching literature and predictable nature of most training algorithms to minimize the number of GPU-CPU matrix transfers while giving the ML training machine memory equal to CPU memory+GPU memory at no effort to the user-programmer.
+* **Actually relevant to major ML libraries** Although I did not know it when I wrote this library, ML libraries like Theano and Tensorflow will copy over large chunks of memory to GPU-ex. a mini batch of training examples. This is a problem if the minibatch size exceeds the GPU memory size. While there are of course programmatic ways around this, my library completely avoids this problem by only copying matrices to GPU when a GPU function (ex. saxpy) has been called on them, and copying them back to CPU only when a CPU only function has been called on them. It would be a simple matter to combine this with making space if necessary on the GPU by sending matrices in GPU memory back to CPU memory, and drawing on the rich caching literature and predictable nature of most training algorithms to minimize the number of GPU-CPU matrix transfers while giving the ML training machine memory equal to CPU memory+GPU memory at no effort to the user-programmer.
 * While I got away with not doing it for feedforward neural nets, it would be conceptually and programmatically easier to think of neural nets as graphs where edges represent data flow and vertices are differentiable functions: see my next machine learning library, https://github.com/wagnew/ComputeGraph, for implementation of this concept.
