@@ -5,8 +5,8 @@ However, implementing everything from scratch, including GPU acceleration, was a
 William Agnew's Machine Learning Library
 
 ##Reinforcement Learning Algorithms
-*Dynamic Programming Policy Iteration
-*Dynamic Programming Value Iteration
-*Off-Policy Monte Carlo
-*Temporal Difference-Lambda
-*Temporal Difference-Tesauro (as described in http://cling.csd.uwo.ca/cs346a/extra/tdgammon.pdf)
+* Dynamic Programming Policy Iteration
+* Dynamic Programming Value Iteration
+* Off-Policy Monte Carlo
+* Temporal Difference-Lambda
+* Temporal Difference-Tesauro (as described in http://cling.csd.uwo.ca/cs346a/extra/tdgammon.pdf)
