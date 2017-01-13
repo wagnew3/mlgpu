@@ -11,8 +11,8 @@ Many of the basics of reinforcement machine learning I learned from https://webd
 * Apache Commons Math 3.x
 
 ##Easy Things to Run
-* Reinforcement Learning+Neural Network State Valuation Checkers
-![alt tag](https://github.com/wagnew3/mlgpu/blob/master/data/Checkers.jpg)
+* Reinforcement Learning+Neural Network State Valuation Checkers: src/checkers/testCheckers.java
+![alt tag](https://github.com/wagnew3/mlgpu/blob/master/data/Checkers.jpg =250x)
 
 ##Reinforcement Learning
 * Dynamic Programming Policy Iteration
